@@ -26,34 +26,37 @@ package hudson.plugins.createjobadvanced;
 import java.lang.reflect.Field;
 
 /**
- * 
+ *
  * @author Dominik Bartholdi (imod)
- * 
+ *
  */
 public class Utils {
 
-    /**
-     * Sets the fields value via reflection, this is useful in case there is no setter defined on the target object.
-     * 
-     * @param targetObject
-     *            the object to set a field on
-     * @param fieldName
-     *            the name of the field to be set
-     * @param value
-     *            the new value for the field
-     */
-    public static void setField(Object targetObject, String fieldName, Object value, boolean failIfError) {
-        try {
-            Field f = targetObject.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            f.set(targetObject, value);
-        } catch (Exception e) {
-            if (failIfError) {
-                throw new RuntimeException("failed to set field", e);
-            } else {
-                System.err.println("WARN: failed to set field [" + fieldName + "] on [" + targetObject + "] " + e.getClass() + ": " + e.getMessage());
-            }
-        }
-    }
+  /**
+   * Sets the fields value via reflection, this is useful in case there is no setter defined on the
+   * target object.
+   *
+   * @param targetObject
+   *          the object to set a field on
+   * @param fieldName
+   *          the name of the field to be set
+   * @param value
+   *          the new value for the field
+   */
+  public static void setField(Object targetObject, String fieldName, Object value,
+      boolean failIfError) {
 
+    try {
+      Field f = targetObject.getClass().getDeclaredField(fieldName);
+      f.setAccessible(true);
+      f.set(targetObject, value);
+    } catch (Exception e) {
+      if (failIfError) {
+        throw new RuntimeException("failed to set field", e);
+      } else {
+        System.err.println("WARN: failed to set field [" + fieldName + "] on [" + targetObject
+            + "] " + e.getClass() + ": " + e.getMessage());
+      }
+    }
+  }
 }

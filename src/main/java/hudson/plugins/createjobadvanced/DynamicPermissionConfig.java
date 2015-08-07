@@ -8,42 +8,56 @@ import java.util.Set;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class DynamicPermissionConfig {
-	private String groupFormat;
 
-	private Set<String> checkedPermissionIds = new HashSet<String>();
+  private String groupFormat;
 
-	@DataBoundConstructor
-	public DynamicPermissionConfig(String groupFormat, Set<String> checkedPermissionIds) {
-		this.groupFormat = groupFormat;
-		if (checkedPermissionIds != null) {
-			this.checkedPermissionIds = checkedPermissionIds;
-		}
-	}
+  private Set<String> checkedPermissionIds = new HashSet<String>();
 
-	public void addPermissionId(String permissionId) {
-		checkedPermissionIds.add(permissionId);
-	}
 
-	/**
-	 * @return the groupFormat
-	 */
-	public String getGroupFormat() {
-		return groupFormat;
-	}
+  @DataBoundConstructor
+  public DynamicPermissionConfig(String groupFormat, Set<String> checkedPermissionIds) {
 
-	/**
-	 * @return the checkedPermissionIds
-	 */
-	public Set<String> getCheckedPermissionIds() {
-		return checkedPermissionIds;
-	}
+    this.groupFormat = groupFormat;
+    if (checkedPermissionIds != null) {
+      this.checkedPermissionIds = checkedPermissionIds;
+    }
+  }
 
-	public boolean isPermissionChecked(Permission permission) {
-		return checkedPermissionIds.contains(permission.getId());
-	}
 
-	@Override
-	public String toString() {
-		return "[DynamicPermissionConfig: " + groupFormat + ", permissions: " + checkedPermissionIds + "]";
-	}
+  public void addPermissionId(String permissionId) {
+
+    checkedPermissionIds.add(permissionId);
+  }
+
+
+  /**
+   * @return the groupFormat
+   */
+  public String getGroupFormat() {
+
+    return groupFormat;
+  }
+
+
+  /**
+   * @return the checkedPermissionIds
+   */
+  public Set<String> getCheckedPermissionIds() {
+
+    return checkedPermissionIds;
+  }
+
+
+  public boolean isPermissionChecked(Permission permission) {
+
+    return checkedPermissionIds.contains(permission.getId());
+  }
+
+
+  @Override
+  public String toString() {
+
+    return "[DynamicPermissionConfig: " + groupFormat + ", permissions: " + checkedPermissionIds
+        + "]";
+  }
 }

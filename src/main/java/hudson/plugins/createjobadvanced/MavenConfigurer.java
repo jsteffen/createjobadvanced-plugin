@@ -30,29 +30,34 @@ import hudson.model.Job;
 
 /**
  * Changes the configuration of {@link MavenModuleSet}s.
- * 
+ *
  * @author Dominik Bartholdi (imod)
  */
 public class MavenConfigurer {
 
-    public MavenConfigurer() {
-    }
+  public MavenConfigurer() {
 
-    public void onCreated(Job<?, ?> job) {
-        if (job instanceof MavenModuleSet) {
-            preConfigureMavenJob((MavenModuleSet) job);
-        }
-    }
+  }
 
-    private void preConfigureMavenJob(MavenModuleSet job) {
-        final CreateJobAdvancedPlugin cja = Hudson.getInstance().getPlugin(CreateJobAdvancedPlugin.class);
-        job.setIsArchivingDisabled(cja.isMvnArchivingDisabled());
-        MavenMailer m = job.getReporters().get(MavenMailer.class);
-        if(m != null) {
-            m.perModuleEmail = cja.isMvnPerModuleEmail();
-        } else {
-            job.getReporters().add(new MavenMailer(null, true, false, cja.isMvnPerModuleEmail()));
-        }
-    }
 
+  public void onCreated(Job<?, ?> job) {
+
+    if (job instanceof MavenModuleSet) {
+      preConfigureMavenJob((MavenModuleSet)job);
+    }
+  }
+
+
+  private void preConfigureMavenJob(MavenModuleSet job) {
+
+    final CreateJobAdvancedPlugin cja =
+        Hudson.getInstance().getPlugin(CreateJobAdvancedPlugin.class);
+    job.setIsArchivingDisabled(cja.isMvnArchivingDisabled());
+    MavenMailer m = job.getReporters().get(MavenMailer.class);
+    if (m != null) {
+      m.perModuleEmail = cja.isMvnPerModuleEmail();
+    } else {
+      job.getReporters().add(new MavenMailer(null, true, false, cja.isMvnPerModuleEmail()));
+    }
+  }
 }
