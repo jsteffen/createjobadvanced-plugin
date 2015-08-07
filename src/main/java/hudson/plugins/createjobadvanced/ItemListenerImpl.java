@@ -4,7 +4,9 @@ import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.Hudson;
 import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.listeners.ItemListener;
+import hudson.scm.SCM;
 import hudson.security.Permission;
 import hudson.security.SecurityMode;
 import hudson.security.AuthorizationMatrixProperty;
@@ -26,6 +28,8 @@ import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 
 @Extension
 public class ItemListenerImpl extends ItemListener {
@@ -77,7 +81,16 @@ public class ItemListenerImpl extends ItemListener {
 
 			if (cja.isAutoOwnerRights()) {
 				String sid = Hudson.getAuthentication().getName();
-				securityGrantPermissions(job, sid, new Permission[] { Item.CONFIGURE, Item.BUILD, Item.READ, Item.DELETE, Item.WORKSPACE });
+				securityGrantPermissions(job, sid, new Permission[] {
+				    Run.UPDATE, Run.DELETE,
+				    Item.CONFIGURE, Item.BUILD, Item.READ, Item.DELETE, Item.WORKSPACE,
+				    Item.CANCEL, Item.DISCOVER,
+				    SCM.TAG,
+				    // even add these permissions although they currently have no effect
+				    CredentialsProvider.CREATE, CredentialsProvider.DELETE, CredentialsProvider.MANAGE_DOMAINS,
+				    CredentialsProvider.UPDATE, CredentialsProvider.VIEW
+				});
+				securityGrantPermissions(job, "anonymous", new Permission[] { Item.READ });
 			}
 
 			if (cja.isAutoPublicBrowse()) {
