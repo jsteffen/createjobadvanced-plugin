@@ -2,9 +2,11 @@ package hudson.plugins.createjobadvanced;
 
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.model.AbstractItem;
 import hudson.model.Hudson;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.View;
 import hudson.model.listeners.ItemListener;
 import hudson.scm.SCM;
 import hudson.security.Permission;
@@ -29,6 +31,8 @@ import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.relocate.RelocationAction;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 
 @Extension
@@ -74,12 +78,19 @@ public class ItemListenerImpl extends ItemListener {
   public void onCreated(Item item) {
 
     log.finer("> ItemListenerImpl.onCreated()");
-    if (!(item instanceof Job))
-      return;
-    final Job<?, ?> job = (Job<?, ?>)item;
-
     CreateJobAdvancedPlugin cja = getPlugin();
+    if (item instanceof Job) {
+      doAdvancedJob(item, cja);
+    } else if (item instanceof Folder) {
+      doAdvancedFolder(item, cja);
+    }
+    log.finer("< ItemListenerImpl.onCreated()");
+  }
 
+
+  private void doAdvancedJob(Item item, CreateJobAdvancedPlugin cja) {
+
+    final Job<?, ?> job = (Job<?, ?>)item;
     if (cja.isReplaceSpace()) {
       renameJob(job);
     }
@@ -96,8 +107,8 @@ public class ItemListenerImpl extends ItemListener {
             CredentialsProvider.MANAGE_DOMAINS, CredentialsProvider.UPDATE,
             CredentialsProvider.VIEW,
             // Job
-            Item.BUILD, Item.CANCEL, Item.CONFIGURE, Item.DELETE, Item.DISCOVER, Item.READ,
-            Item.WORKSPACE,
+            Item.BUILD, Item.CANCEL, Item.CONFIGURE, Item.DELETE, Item.DISCOVER,
+            RelocationAction.RELOCATE, Item.READ, Item.WORKSPACE,
             // Run
             Run.DELETE, Run.UPDATE,
             // SCM
@@ -123,12 +134,10 @@ public class ItemListenerImpl extends ItemListener {
     if (mavenConfigurer != null) {
       mavenConfigurer.onCreated(job);
     }
-
-    log.finer("< ItemListenerImpl.onCreated()");
   }
 
 
-  private void securityGrantDynamicPermissions(final Job<?, ?> job, CreateJobAdvancedPlugin cja) {
+  private void securityGrantDynamicPermissions(final AbstractItem item, CreateJobAdvancedPlugin cja) {
 
     String patternStr = cja.getExtractPattern();// com.([A-Z]{3}).(.*)
 
@@ -136,7 +145,7 @@ public class ItemListenerImpl extends ItemListener {
 
     if (patternStr != null) {
       Pattern pattern = Pattern.compile(patternStr);
-      Matcher matcher = pattern.matcher(job.getName());
+      Matcher matcher = pattern.matcher(item.getName());
       boolean matchFound = matcher.find();
 
       if (matchFound) {
@@ -161,8 +170,15 @@ public class ItemListenerImpl extends ItemListener {
         permissionList.add(permForId);
       }
 
-      securityGrantPermissions(job, newName,
-          (Permission[])permissionList.toArray(new Permission[permissionList.size()]));
+      if (item instanceof Job) {
+        securityGrantPermissions(
+            (Job<?, ?>)item, newName,
+            (Permission[])permissionList.toArray(new Permission[permissionList.size()]));
+      } else if (item instanceof Folder) {
+        securityGrantPermissions(
+            (Folder)item, newName,
+            (Permission[])permissionList.toArray(new Permission[permissionList.size()]));
+      }
     }
   }
 
@@ -253,5 +269,101 @@ public class ItemListenerImpl extends ItemListener {
         sidPermission.add(sid);
       }
     }
+  }
+
+
+  private void doAdvancedFolder(Item item, CreateJobAdvancedPlugin cja) {
+
+    final Folder folder = (Folder)item;
+    if (cja.isReplaceSpace()) {
+      renameFolder(folder);
+    }
+
+    // hudson must activate security mode for using
+    if (!Hudson.getInstance().getSecurity().equals(SecurityMode.UNSECURED)) {
+
+      if (cja.isAutoOwnerRights()) {
+        String sid = Hudson.getAuthentication().getName();
+        securityGrantPermissions(folder, sid, new Permission[] {
+            // Credentials
+            // even add these permissions although they currently have no effect
+            CredentialsProvider.CREATE, CredentialsProvider.DELETE,
+            CredentialsProvider.MANAGE_DOMAINS, CredentialsProvider.UPDATE,
+            CredentialsProvider.VIEW,
+            // Job
+            Item.BUILD, Item.CANCEL, Item.CONFIGURE, Item.CREATE, Item.DELETE, Item.DISCOVER,
+            RelocationAction.RELOCATE, Item.READ, Item.WORKSPACE,
+            // View
+            View.CONFIGURE, View.CREATE, View.DELETE, View.READ,
+            // Run
+            Run.DELETE, Run.UPDATE,
+            // SCM
+            SCM.TAG
+        });
+        securityGrantPermissions(folder, "anonymous", new Permission[] { Item.READ });
+      }
+
+      if (cja.isAutoPublicBrowse()) {
+        securityGrantPermissions(folder, "anonymous",
+            new Permission[] { Item.READ, Item.WORKSPACE });
+      }
+
+      if (cja.isActiveDynamicPermissions()) {
+        securityGrantDynamicPermissions(folder, cja);
+      }
+    }
+  }
+
+
+  private void renameFolder(final Folder folder) {
+
+    if (folder.getName().indexOf(" ") != -1) {
+      try {
+        folder.renameTo(folder.getName().replaceAll(" ", "-"));
+      } catch (IOException e) {
+        log.log(Level.SEVERE, "error during rename", e);
+      }
+    }
+  }
+
+
+  private void securityGrantPermissions(final Folder folder, String sid,
+      Permission[] hudsonPermissions) {
+
+    Map<Permission, Set<String>> permissions = initPermissions(folder);
+
+    for (Permission perm : hudsonPermissions) {
+      configurePermission(permissions, perm, sid);
+    }
+
+    try {
+      com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty authProperty =
+          new com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty(
+              permissions);
+      folder.addProperty(authProperty);
+      log.info("Granting rights to [" + sid + "] for newly-created folder "
+          + folder.getDisplayName());
+    } catch (IOException e) {
+      log.log(Level.SEVERE, "problem to add granted permissions", e);
+    }
+  }
+
+
+  private Map<Permission, Set<String>> initPermissions(final Folder folder) {
+
+    Map<Permission, Set<String>> permissions = null;
+
+    // if you create the job with template, need to get informations
+    com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty auth =
+        folder.getProperties().get(
+            com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
+    if (auth != null) {
+      permissions = new HashMap<Permission, Set<String>>(auth.getGrantedPermissions());
+      folder.getProperties().remove(auth);
+    } else {
+      permissions = new HashMap<Permission, Set<String>>();
+    }
+
+    return permissions;
   }
 }
