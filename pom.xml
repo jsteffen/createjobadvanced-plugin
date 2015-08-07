@@ -6,11 +6,10 @@
 		<version>1.532</version>
 	</parent>
 
-	<artifactId>createjobadvanced</artifactId>
-	<version>1.8.1-SNAPSHOT</version>
-	<name>Create Job Advanced</name>
+	<artifactId>createjobadvanced-dfki-mlt-mod</artifactId>
+	<version>1.8.2</version>
+	<name>Create Job Advanced DFKI MLT Mod</name>
 	<packaging>hpi</packaging>
-	<url>http://wiki.jenkins-ci.org/display/JENKINS/Create+Job+Advanced+Plugin</url>
 
 	<developers>
 		<developer>
