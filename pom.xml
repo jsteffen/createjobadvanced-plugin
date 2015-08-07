@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>createjobadvanced-dfki-mlt-mod</artifactId>
-  <version>1.8.2</version>
+  <version>1.8.2-SNAPSHOT</version>
   <name>Create Job Advanced DFKI MLT Mod</name>
   <packaging>hpi</packaging>
 
@@ -99,6 +99,12 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>matrix-auth</artifactId>
       <version>1.0.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>cloudbees-folder</artifactId>
+      <version>4.9</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>
